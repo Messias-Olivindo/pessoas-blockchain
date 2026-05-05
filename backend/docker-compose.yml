@@ -1,21 +1,24 @@
-services:
-  postgres:
-    image: postgres:16
-    container_name: gestao_pessoas_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: gestao_pessoas
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d gestao_pessoas"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+# Este projeto usa o Supabase como provedor PostgreSQL gerenciado.
+# Não é necessário rodar um container local de banco de dados para produção.
+#
+# Para desenvolvimento local com banco de dados, crie um arquivo
+# docker-compose.dev.yml com o conteúdo abaixo e use-o somente para dev:
+#
+# services:
+#   postgres:
+#     image: postgres:16
+#     container_name: gestao_pessoas_postgres
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_USER: user
+#       POSTGRES_PASSWORD: password
+#       POSTGRES_DB: gestao_pessoas
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#
+# volumes:
+#   postgres_data:
 
-volumes:
-  postgres_data:
+services: {}

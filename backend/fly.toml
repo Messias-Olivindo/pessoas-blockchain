@@ -8,6 +8,12 @@ primary_region = 'iad'
 
 [build]
 
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+  GOOGLE_OAUTH_REDIRECT_URI = "https://pessoas-blockchain.fly.dev/auth/google/callback"
+  # FRONTEND_URL deve ser definido como Fly Secret ou ajustado aqui com a URL real do frontend
+
 [deploy]
   release_command = 'npx prisma migrate deploy'
 
