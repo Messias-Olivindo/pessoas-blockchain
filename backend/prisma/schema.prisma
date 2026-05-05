@@ -1,0 +1,381 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+    ADMIN
+    PEOPLE
+    INTERVIEWER
+}
+
+enum UserStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
+enum MemberStatus {
+    CANDIDATE
+    ACTIVE
+    INACTIVE
+    ALUMNI
+}
+
+enum Department {
+    PEOPLE
+    MARKETING
+    PROJECTS
+    EDUCATIONAL
+}
+
+enum Position {
+    MEMBER
+    DIRECTOR
+    PRESIDENT
+    HEAD
+}
+
+enum ApplicationStatus {
+    DRAFT
+    SUBMITTED
+    IN_REVIEW
+    APPROVED
+    REJECTED
+    WITHDRAWN
+}
+
+enum StageResultStatus {
+    PENDING
+    PASSED
+    FAILED
+    SKIPPED
+}
+
+enum MeetingRequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CANCELED
+}
+
+enum MeetingStatus {
+    SCHEDULED
+    COMPLETED
+    CANCELED
+}
+
+model User {
+    id            String    @id @default(uuid())
+    name          String?
+    email         String    @unique
+    emailVerified DateTime?
+    image         String?
+
+    role   UserRole   @default(PEOPLE)
+    status UserStatus @default(PENDING)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    accounts Account[]
+    sessions Session[]
+
+    memberId String? @unique
+    member   Member? @relation(fields: [memberId], references: [id])
+
+    evaluations     CandidateEvaluation[]
+    meetings        Meeting[]             @relation("OrganizerMeetings")
+    pdiEntries      PdiEntry[]
+    pdiRevisions    PdiEntryRevision[]
+    meetingRequests MeetingRequest[]
+}
+
+model Account {
+    id                String  @id @default(uuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@index([userId])
+}
+
+model Session {
+    id           String   @id @default(uuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+model Member {
+    id           String  @id @default(uuid())
+    name         String
+    email        String  @unique
+    universityId String?
+    gender       String?
+    race         String?
+    isLgbtqia    Boolean @default(false)
+
+    status     MemberStatus @default(CANDIDATE)
+    position   Position?
+    department Department?
+
+    joinedAt DateTime?
+    leftAt   DateTime?
+
+    interests String[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user            User?
+    applications    Application[]
+    meetings        Meeting[]          @relation("AttendeeMeetings")
+    meetingRequests MeetingRequest[]
+    pdiEntries      PdiEntry[]
+    assignments     MemberAssignment[]
+
+    @@index([status])
+    @@index([department])
+    @@index([gender])
+    @@index([race])
+    @@index([isLgbtqia])
+    @@index([interests], type: Gin)
+}
+
+model MemberAssignment {
+    id          String    @id @default(uuid())
+    memberId    String
+    description String    @db.Text
+    startAt     DateTime?
+    endAt       DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+    @@index([memberId])
+    @@index([startAt])
+}
+
+model SelectionProcess {
+    id        String   @id @default(uuid())
+    year      Int
+    name      String
+    isActive  Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    stages       SelectionStage[]
+    applications Application[]
+
+    @@index([year])
+}
+
+model SelectionStage {
+    id        String   @id @default(uuid())
+    processId String
+    title     String
+    order     Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    process   SelectionProcess    @relation(fields: [processId], references: [id], onDelete: Cascade)
+    questions SelectionQuestion[]
+    results   StageResult[]
+
+    @@unique([processId, order])
+    @@index([processId])
+}
+
+model SelectionQuestion {
+    id          String   @id @default(uuid())
+    stageId     String
+    title       String
+    description String?  @db.Text
+    maxScore    Float
+    weight      Int      @default(1)
+    order       Int
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    stage       SelectionStage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+    evaluations CandidateEvaluation[]
+    answers     SelectionAnswer[]
+
+    @@unique([stageId, order])
+    @@index([stageId])
+}
+
+model Application {
+    id        String            @id @default(uuid())
+    memberId  String
+    processId String
+    status    ApplicationStatus @default(DRAFT)
+    appliedAt DateTime?
+    notes     String?           @db.Text
+    createdAt DateTime          @default(now())
+    updatedAt DateTime          @updatedAt
+
+    member      Member                @relation(fields: [memberId], references: [id], onDelete: Cascade)
+    process     SelectionProcess      @relation(fields: [processId], references: [id], onDelete: Cascade)
+    results     StageResult[]
+    evaluations CandidateEvaluation[]
+    answers     SelectionAnswer[]
+
+    @@unique([memberId, processId])
+    @@index([processId])
+    @@index([memberId])
+    @@index([status])
+}
+
+model StageResult {
+    id            String            @id @default(uuid())
+    applicationId String
+    stageId       String
+    status        StageResultStatus @default(PENDING)
+    score         Float?
+    notes         String?           @db.Text
+    decidedAt     DateTime?
+    createdAt     DateTime          @default(now())
+    updatedAt     DateTime          @updatedAt
+
+    application Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+    stage       SelectionStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+    @@unique([applicationId, stageId])
+    @@index([stageId])
+    @@index([applicationId])
+    @@index([status])
+}
+
+model CandidateEvaluation {
+    id            String   @id @default(uuid())
+    applicationId String
+    questionId    String
+    evaluatorId   String?
+    score         Float?
+    notes         String?  @db.Text
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    application Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+    question    SelectionQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+    evaluator   User?             @relation(fields: [evaluatorId], references: [id], onDelete: SetNull)
+
+    @@unique([applicationId, questionId])
+    @@index([evaluatorId])
+    @@index([applicationId])
+}
+
+model SelectionAnswer {
+    id            String   @id @default(uuid())
+    applicationId String
+    questionId    String
+    answerText    String   @db.Text
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    application Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+    question    SelectionQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+    @@unique([applicationId, questionId])
+    @@index([questionId])
+    @@index([applicationId])
+}
+
+model PdiEntry {
+    id        String   @id @default(uuid())
+    memberId  String
+    authorId  String
+    title     String
+    content   String   @db.Text
+    isActive  Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    member    Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+    author    User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    revisions PdiEntryRevision[]
+
+    @@index([memberId])
+    @@index([authorId])
+}
+
+model PdiEntryRevision {
+    id         String   @id @default(uuid())
+    pdiEntryId String
+    editorId   String
+    content    String   @db.Text
+    createdAt  DateTime @default(now())
+
+    pdiEntry PdiEntry @relation(fields: [pdiEntryId], references: [id], onDelete: Cascade)
+    editor   User     @relation(fields: [editorId], references: [id], onDelete: Cascade)
+
+    @@index([pdiEntryId])
+    @@index([editorId])
+}
+
+model MeetingRequest {
+    id             String               @id @default(uuid())
+    requesterId    String
+    memberId       String
+    requestedStart DateTime
+    requestedEnd   DateTime
+    timezone       String
+    notes          String?              @db.Text
+    status         MeetingRequestStatus @default(PENDING)
+    createdAt      DateTime             @default(now())
+    decidedAt      DateTime?
+
+    requester User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+    member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+    meeting   Meeting?
+
+    @@index([requesterId])
+    @@index([memberId])
+    @@index([status])
+}
+
+model Meeting {
+    id               String        @id @default(uuid())
+    meetingRequestId String?       @unique
+    organizerId      String
+    attendeeId       String
+    title            String
+    description      String?       @db.Text
+    startTime        DateTime
+    endTime          DateTime
+    googleEventId    String?       @unique
+    meetLink         String?
+    status           MeetingStatus @default(SCHEDULED)
+    createdAt        DateTime      @default(now())
+    updatedAt        DateTime      @updatedAt
+
+    meetingRequest MeetingRequest? @relation(fields: [meetingRequestId], references: [id], onDelete: SetNull)
+    organizer      User            @relation("OrganizerMeetings", fields: [organizerId], references: [id], onDelete: Cascade)
+    attendee       Member          @relation("AttendeeMeetings", fields: [attendeeId], references: [id], onDelete: Cascade)
+
+    @@index([organizerId])
+    @@index([attendeeId])
+    @@index([startTime])
+}

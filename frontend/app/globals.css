@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary-bg: #081119;
+  --color-secondary-bg: #13293d;
+  --color-tertiary-bg: #006494;
+  --color-text-main: #e8f1f2;
+  --color-accent-blue: #1b98e0;
+  --color-accent-magenta: #9f0e5d;
+  --color-educational: #380f2e;
+
+  --font-sans: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-heading: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* 
+  Estilos base exigidos pelo style-guide:
+  - Borda: 3px
+  - Raio de Borda: 0 ou 20px
+*/
+@layer base {
+  * {
+    border-color: var(--color-secondary-bg);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[var(--color-accent-blue)] text-white px-6 py-2 rounded-[20px] font-bold hover:opacity-90 transition-all border-[3px] border-transparent;
+  }
+  
+  .btn-secondary {
+    @apply bg-transparent text-[var(--color-accent-blue)] px-6 py-2 rounded-[20px] font-bold hover:bg-[var(--color-secondary-bg)] transition-all border-[3px] border-[var(--color-accent-blue)];
+  }
+
+  .card {
+    @apply bg-[var(--color-secondary-bg)] p-6 rounded-[20px] border-[3px] border-[var(--color-tertiary-bg)];
+  }
+}

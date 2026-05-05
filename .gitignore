@@ -1,0 +1,12 @@
+# IA
+.copilot/
+contexts/
+plan/
+.agents/
+
+# Pasta com dados privados
+data/
+backend/scripts/
+
+# python
+*.venv/
