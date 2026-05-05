@@ -29,6 +29,20 @@ import { GoogleOAuthService } from './google-oauth.service';
 export class AuthController {
   constructor(private readonly googleOAuthService: GoogleOAuthService) {}
 
+  private getFrontendBaseUrl(): string {
+    return process.env.FRONTEND_URL ?? 'http://localhost:3000';
+  }
+
+  private buildFrontendUrl(path: string, params?: Record<string, string>): string {
+    const url = new URL(path, this.getFrontendBaseUrl());
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        url.searchParams.set(key, value);
+      }
+    }
+    return url.toString();
+  }
+
   /**
    * Return the authenticated user based on request headers.
    *
@@ -97,7 +111,9 @@ export class AuthController {
   ) {
     if (error) {
       if (res) {
-        return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(error)}`);
+        return res.redirect(
+          this.buildFrontendUrl('/login', { error: encodeURIComponent(error) }),
+        );
       }
       throw new ForbiddenException(
         `Google OAuth negado: ${error}. O usuario precisa autorizar o acesso.`,
@@ -106,7 +122,7 @@ export class AuthController {
 
     if (!code) {
       if (res) {
-        return res.redirect(`http://localhost:3000/login?error=NoCode`);
+        return res.redirect(this.buildFrontendUrl('/login', { error: 'NoCode' }));
       }
       throw new ForbiddenException(
         'Codigo de autorizacao nao recebido do Google.',
@@ -119,16 +135,23 @@ export class AuthController {
       // No MVP, redirecionamos de volta para o dashboard apos salvar no BD.
       // Futuramente aqui criariamos a sessao/cookie JWT.
       if (res) {
-        return res.redirect(`http://localhost:3000/dashboard?userId=${user.id}&role=${user.role}`);
+        return res.redirect(
+          this.buildFrontendUrl('/dashboard', {
+            userId: user.id,
+            role: user.role,
+          }),
+        );
       }
       return user;
     } catch (err: any) {
       // Se for invalid_grant por duplo-request do navegador, ignoramos e mandamos pro dashboard (pois o 1o ja logou)
       if (err.message?.includes('invalid_grant') && res) {
-         return res.redirect(`http://localhost:3000/dashboard`);
+        return res.redirect(this.buildFrontendUrl('/dashboard'));
       }
       if (res) {
-        return res.redirect(`http://localhost:3000/login?error=AuthFailed`);
+        return res.redirect(
+          this.buildFrontendUrl('/login', { error: 'AuthFailed' }),
+        );
       }
       throw err;
     }
