@@ -30,10 +30,23 @@ export class AuthController {
   constructor(private readonly googleOAuthService: GoogleOAuthService) {}
 
   private getFrontendBaseUrl(): string {
-    return process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL;
+
+    if (frontendUrl) {
+      return frontendUrl;
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      return 'http://localhost:3000';
+    }
+
+    throw new Error('FRONTEND_URL is required in production.');
   }
 
-  private buildFrontendUrl(path: string, params?: Record<string, string>): string {
+  private buildFrontendUrl(
+    path: string,
+    params?: Record<string, string>,
+  ): string {
     const url = new URL(path, this.getFrontendBaseUrl());
     if (params) {
       for (const [key, value] of Object.entries(params)) {
@@ -99,8 +112,16 @@ export class AuthController {
       'Receives the authorization code from Google, exchanges it for tokens, ' +
       'validates the email domain, and upserts the user and account records.',
   })
-  @ApiQuery({ name: 'code', required: false, description: 'Google authorization code' })
-  @ApiQuery({ name: 'error', required: false, description: 'Error from Google (e.g. access_denied)' })
+  @ApiQuery({
+    name: 'code',
+    required: false,
+    description: 'Google authorization code',
+  })
+  @ApiQuery({
+    name: 'error',
+    required: false,
+    description: 'Error from Google (e.g. access_denied)',
+  })
   @ApiOkResponse({
     description: 'Redirects to frontend dashboard on success.',
   })
@@ -122,7 +143,9 @@ export class AuthController {
 
     if (!code) {
       if (res) {
-        return res.redirect(this.buildFrontendUrl('/login', { error: 'NoCode' }));
+        return res.redirect(
+          this.buildFrontendUrl('/login', { error: 'NoCode' }),
+        );
       }
       throw new ForbiddenException(
         'Codigo de autorizacao nao recebido do Google.',
@@ -131,7 +154,7 @@ export class AuthController {
 
     try {
       const user = await this.googleOAuthService.handleCallback(code);
-      
+
       // No MVP, redirecionamos de volta para o dashboard apos salvar no BD.
       // Futuramente aqui criariamos a sessao/cookie JWT.
       if (res) {

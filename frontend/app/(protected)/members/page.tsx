@@ -27,8 +27,13 @@ export default function MembersPage() {
     fetchMembers();
   }, []);
 
-  const handleExportCSV = () => {
-    window.open(membersService.getExportUrl(), "_blank");
+  const handleExportCSV = async () => {
+    try {
+      await membersService.exportCSV();
+    } catch (error) {
+      console.error("Failed to export CSV", error);
+      alert("Erro ao exportar CSV.");
+    }
   };
 
   const handleImportClick = () => {

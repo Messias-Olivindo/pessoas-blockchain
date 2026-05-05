@@ -28,8 +28,13 @@ export default function MemberProfilePage({ params }: { params: Promise<{ id: st
     fetchMember();
   }, [memberId]);
 
-  const handleExportPDF = () => {
-    window.open(membersService.getExportPdfUrl(memberId), "_blank");
+  const handleExportPDF = async () => {
+    try {
+      await membersService.exportPDF(memberId);
+    } catch (error) {
+      console.error("Failed to export PDF", error);
+      alert("Erro ao exportar PDF.");
+    }
   };
 
   if (loading) {

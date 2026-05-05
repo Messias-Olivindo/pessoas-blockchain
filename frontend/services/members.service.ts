@@ -1,4 +1,4 @@
-import { api, getBaseUrl } from "./api";
+import { api, downloadFile } from "./api";
 
 export interface Member {
   id: string;
@@ -29,11 +29,12 @@ export const membersService = {
     return membersService.getMembers();
   },
 
-  getExportUrl: () => {
-    return `${getBaseUrl()}/export/members/csv`;
+  exportCSV: async () => {
+    const date = new Date().toISOString().split("T")[0];
+    await downloadFile("/export/members/csv", `membros_${date}.csv`);
   },
 
-  getExportPdfUrl: (memberId: string) => {
-    return `${getBaseUrl()}/export/members/${memberId}/pdf`;
+  exportPDF: async (memberId: string) => {
+    await downloadFile(`/export/members/${memberId}/pdf`, `membro_${memberId}.pdf`);
   }
 };

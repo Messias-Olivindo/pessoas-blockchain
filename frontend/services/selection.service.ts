@@ -1,4 +1,4 @@
-import { api, getBaseUrl } from "./api";
+import { api, downloadFile } from "./api";
 
 export interface SelectionProcess {
   id: string;
@@ -37,7 +37,7 @@ export const selectionService = {
     return selectionService.getApplications(processId);
   },
 
-  getExportUrl: (processId: string) => {
-    return `${getBaseUrl()}/export/selection/${processId}/csv`;
+  exportCSV: async (processId: string) => {
+    await downloadFile(`/export/selection/${processId}/csv`, `selecao_${processId}.csv`);
   }
 };

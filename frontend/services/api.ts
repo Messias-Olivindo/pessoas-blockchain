@@ -32,3 +32,21 @@ export function setupApiClient(userId?: string, userRole?: string) {
 
 // Inicializa o interceptor
 setupApiClient();
+
+/**
+ * Download a file from the API using authenticated axios (with x-user-id/x-user-role headers).
+ * This is necessary because `window.open()` opens a raw browser request without custom headers,
+ * causing 401 errors on protected export endpoints.
+ */
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const response = await api.get(path, { responseType: "blob" });
+  const blob = new Blob([response.data]);
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}

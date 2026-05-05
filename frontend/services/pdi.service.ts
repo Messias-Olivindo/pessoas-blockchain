@@ -1,4 +1,4 @@
-import { api, getBaseUrl } from "./api";
+import { api, downloadFile } from "./api";
 
 export const pdiService = {
   savePdi: async (memberId: string, title: string, content: string) => {
@@ -10,7 +10,18 @@ export const pdiService = {
     return response.data;
   },
 
-  getExportUrl: (memberId: string) => {
-    return `${getBaseUrl()}/export/pdi/csv?memberId=${memberId}`;
-  }
+  exportCSV: async (memberId: string) => {
+    const date = new Date().toISOString().split("T")[0];
+    await downloadFile(
+      `/export/pdi/csv?memberId=${memberId}`,
+      `pdi_${memberId}_${date}.csv`,
+    );
+  },
+
+  exportPDF: async (memberId: string) => {
+    await downloadFile(
+      `/export/members/${memberId}/pdf`,
+      `membro_${memberId}.pdf`,
+    );
+  },
 };

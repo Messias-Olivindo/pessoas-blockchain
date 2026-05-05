@@ -11,25 +11,33 @@ import { ResponseInterceptor } from './shared/interceptors/response.interceptor'
  */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const frontendUrl = process.env.FRONTEND_URL;
+  const corsOrigins = new Set<string>();
+
+  if (frontendUrl) {
+    corsOrigins.add(frontendUrl);
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    corsOrigins.add('http://localhost:3000');
+  }
+
   app.enableCors({
-    origin: [process.env.FRONTEND_URL, 'http://localhost:3000'],
-  
-  // Métodos HTTP permitidos
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  
-  // Obrigatório caso o front-end envie cookies ou tokens específicos e exija withCredentials
-  credentials: true,
-  
-  // Adicione explicitamente os headers customizados que você usa na sua API
-  allowedHeaders: [
-    'Origin', 
-    'X-Requested-With', 
-    'Content-Type', 
-    'Accept', 
-    'Authorization',
-    'x-user-id',   // Liberando seu header customizado
-    'x-user-role'  // Liberando seu header customizado
-  ],
+    origin: Array.from(corsOrigins),
+    // Métodos HTTP permitidos
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    // Obrigatório caso o front-end envie cookies ou tokens específicos e exija withCredentials
+    credentials: true,
+    // Adicione explicitamente os headers customizados que você usa na sua API
+    allowedHeaders: [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'x-user-id',
+      'x-user-role',
+    ],
   });
   app.useGlobalPipes(
     new ValidationPipe({

@@ -28,8 +28,13 @@ export default function SelectionProcessPage({ params }: { params: Promise<{ id:
     fetchApplications();
   }, [processId]);
 
-  const handleExportCSV = () => {
-    window.open(selectionService.getExportUrl(processId), "_blank");
+  const handleExportCSV = async () => {
+    try {
+      await selectionService.exportCSV(processId);
+    } catch (error) {
+      console.error("Failed to export CSV", error);
+      alert("Erro ao exportar resultados.");
+    }
   };
 
   const handleImportClick = () => {
