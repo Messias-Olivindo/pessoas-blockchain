@@ -11,7 +11,26 @@ import { ResponseInterceptor } from './shared/interceptors/response.interceptor'
  */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app.enableCors({
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000'],
+  
+  // Métodos HTTP permitidos
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  
+  // Obrigatório caso o front-end envie cookies ou tokens específicos e exija withCredentials
+  credentials: true,
+  
+  // Adicione explicitamente os headers customizados que você usa na sua API
+  allowedHeaders: [
+    'Origin', 
+    'X-Requested-With', 
+    'Content-Type', 
+    'Accept', 
+    'Authorization',
+    'x-user-id',   // Liberando seu header customizado
+    'x-user-role'  // Liberando seu header customizado
+  ],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -37,6 +56,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = Number(process.env.PORT ?? 3000);
+  // Bind explicitly to 0.0.0.0 so Fly's health checks can reach the service
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();
