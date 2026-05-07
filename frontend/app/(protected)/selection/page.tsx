@@ -230,12 +230,12 @@ export default function SelectionPage() {
   const [processes, setProcesses] = useState<SelectionProcess[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canAccess, setCanAccess] = useState<boolean | null>(null);
 
-  const role =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("x-user-role") ?? "")
-      : "";
-  const canAccess = role === "ADMIN" || role === "PEOPLE";
+  useEffect(() => {
+    const role = localStorage.getItem("x-user-role") ?? "";
+    setCanAccess(role === "ADMIN" || role === "PEOPLE");
+  }, []);
 
   const fetchProcesses = useCallback(async () => {
     try {
@@ -251,10 +251,12 @@ export default function SelectionPage() {
   }, []);
 
   useEffect(() => {
+    if (canAccess === null) return;
     if (canAccess) fetchProcesses();
     else setLoading(false);
   }, [canAccess, fetchProcesses]);
 
+  if (canAccess === null) return null;
   if (!canAccess) return <AccessDenied />;
 
   return (

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import {
   FileText,
   User,
+  ArrowLeft,
   ArrowRight,
   ClipboardList,
   CheckCircle2,
@@ -609,6 +610,15 @@ export default function MemberProfilePage({
       animate={{ opacity: 1, y: 0 }}
       className="p-8 w-full max-w-5xl mx-auto flex flex-col gap-8"
     >
+      {/* ── Back ── */}
+      <button
+        onClick={() => router.push("/members")}
+        className="flex items-center gap-1.5 text-sm text-text-main opacity-60 hover:opacity-100 transition-opacity w-fit"
+      >
+        <ArrowLeft size={15} />
+        Membros
+      </button>
+
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">

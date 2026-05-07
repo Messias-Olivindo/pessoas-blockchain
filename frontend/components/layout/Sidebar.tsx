@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, LogOut, LayoutDashboard, UserCog } from "lucide-react";
-import { motion } from "framer-motion";
+import { Users, ShieldCheck, ClipboardList, LogOut, LayoutDashboard, UserCog, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [isPeople, setIsPeople] = useState(false);
 
@@ -26,14 +31,23 @@ export function Sidebar() {
       : []),
   ];
 
-  return (
-    <div className="w-64 bg-secondary-bg border-r-[3px] border-tertiary-bg h-screen sticky top-0 flex flex-col">
-      <div className="p-6 flex items-center gap-3 border-b-[3px] border-tertiary-bg">
-        <ShieldCheck size={32} className="text-accent-blue" />
-        <h2 className="text-xl font-bold text-white">
-          Inteli<br />
-          <span className="text-accent-blue">Blockchain</span>
-        </h2>
+  const sidebarContent = (
+    <div className="w-64 bg-secondary-bg border-r-[3px] border-tertiary-bg h-full flex flex-col">
+      <div className="p-6 flex items-center justify-between border-b-[3px] border-tertiary-bg">
+        <div className="flex items-center gap-3">
+          <ShieldCheck size={32} className="text-accent-blue" />
+          <h2 className="text-xl font-bold text-white">
+            Inteli<br />
+            <span className="text-accent-blue">Blockchain</span>
+          </h2>
+        </div>
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1.5 rounded-xl hover:bg-tertiary-bg transition-colors text-text-main"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 p-4 flex flex-col gap-2 mt-4">
@@ -45,6 +59,7 @@ export function Sidebar() {
             <Link
               key={link.href}
               href={link.href}
+              onClick={onClose}
               className={`flex items-center gap-3 p-3 rounded-[20px] transition-colors border-[3px] font-bold ${
                 isActive
                   ? "bg-tertiary-bg border-accent-blue text-white"
@@ -63,10 +78,8 @@ export function Sidebar() {
       <div className="p-4 border-t-[3px] border-tertiary-bg">
         <button
           onClick={() => {
-            if (typeof window !== "undefined") {
-              localStorage.removeItem("x-user-id");
-              localStorage.removeItem("x-user-role");
-            }
+            localStorage.removeItem("x-user-id");
+            localStorage.removeItem("x-user-role");
             window.location.href = "/";
           }}
           className="flex items-center w-full gap-3 p-3 rounded-[20px] border-[3px] border-transparent text-accent-magenta hover:bg-tertiary-bg font-bold transition-colors cursor-pointer"
@@ -78,5 +91,43 @@ export function Sidebar() {
         </button>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* Desktop — always visible */}
+      <div className="hidden md:flex h-screen sticky top-0 shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile — overlay drawer */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/60 md:hidden"
+              onClick={onClose}
+            />
+            {/* Drawer */}
+            <motion.div
+              key="drawer"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "tween", duration: 0.25 }}
+              className="fixed inset-y-0 left-0 z-50 md:hidden h-full"
+            >
+              {sidebarContent}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

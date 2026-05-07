@@ -88,11 +88,12 @@ export default function MembersPage() {
   const [importing, setImporting] = useState(false);
   const router = useRouter();
 
-  const role =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("x-user-role") ?? "")
-      : "";
-  const canAccess = role === "ADMIN" || role === "PEOPLE";
+  const [canAccess, setCanAccess] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const role = localStorage.getItem("x-user-role") ?? "";
+    setCanAccess(role === "ADMIN" || role === "PEOPLE");
+  }, []);
 
   // Filter states
   const [search, setSearch] = useState("");
@@ -141,6 +142,7 @@ export default function MembersPage() {
 
   // Initial load
   useEffect(() => {
+    if (canAccess === null) return;
     if (canAccess) fetchMembers({ limit: 200 });
     else setLoading(false);
   }, [fetchMembers, canAccess]);
@@ -276,6 +278,7 @@ export default function MembersPage() {
     },
   ];
 
+  if (canAccess === null) return null;
   if (!canAccess) return <AccessDenied />;
 
   return (

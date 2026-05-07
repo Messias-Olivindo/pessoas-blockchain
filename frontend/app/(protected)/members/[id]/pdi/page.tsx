@@ -6,9 +6,10 @@ import { MarkdownViewer } from "@/components/ui/MarkdownViewer";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { Download, Save, FileText, Eye, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Download, Save, FileText, Eye, AlertTriangle } from "lucide-react";
 import { pdiService, PdiEntry } from "@/services/pdi.service";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const DEFAULT_CONTENT =
   "# Meu Plano de Desenvolvimento Individual\n\n## Metas do Semestre\n- \n\n## Pontos Fortes\n- \n\n## Áreas de Desenvolvimento\n- \n";
@@ -16,6 +17,7 @@ const DEFAULT_CONTENT =
 export default function PDIPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const memberId = resolvedParams.id;
+  const router = useRouter();
 
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [currentPdi, setCurrentPdi] = useState<PdiEntry | null>(null);
@@ -100,6 +102,15 @@ export default function PDIPage({ params }: { params: Promise<{ id: string }> })
       animate={{ opacity: 1, y: 0 }}
       className="p-8 w-full max-w-5xl mx-auto flex flex-col gap-8"
     >
+      {/* Back */}
+      <button
+        onClick={() => router.push(`/members/${memberId}`)}
+        className="flex items-center gap-1.5 text-sm text-text-main opacity-60 hover:opacity-100 transition-opacity w-fit"
+      >
+        <ArrowLeft size={15} />
+        Perfil do Membro
+      </button>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-1">

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Download,
   Upload,
   ClipboardList,
@@ -392,6 +393,7 @@ export default function SelectionProcessPage({
 }) {
   const resolvedParams = use(params);
   const processId = resolvedParams.id;
+  const router = useRouter();
 
   const [process, setProcess] = useState<SelectionProcess | null>(null);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -514,11 +516,11 @@ export default function SelectionProcessPage({
     fileInput.click();
   };
 
-  const role =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("x-user-role") ?? "")
-      : "";
-  const canAccess = role === "ADMIN" || role === "PEOPLE";
+  const [canAccess, setCanAccess] = useState<boolean | null>(null);
+  useEffect(() => {
+    const role = localStorage.getItem("x-user-role") ?? "";
+    setCanAccess(role === "ADMIN" || role === "PEOPLE");
+  }, []);
 
   const approvedCount = applications.filter(
     (a) => a.status === "APPROVED",
@@ -527,6 +529,7 @@ export default function SelectionProcessPage({
     (a) => a.status === "REJECTED",
   ).length;
 
+  if (canAccess === null) return null;
   if (!canAccess) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
@@ -545,6 +548,15 @@ export default function SelectionProcessPage({
       animate={{ opacity: 1, y: 0 }}
       className="p-8 w-full max-w-full mx-auto flex flex-col gap-6"
     >
+      {/* Back */}
+      <button
+        onClick={() => router.push("/selection")}
+        className="flex items-center gap-1.5 text-sm text-text-main opacity-60 hover:opacity-100 transition-opacity w-fit"
+      >
+        <ArrowLeft size={15} />
+        Processos Seletivos
+      </button>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">

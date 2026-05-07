@@ -57,11 +57,11 @@ export default function AdminUsersPage() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const currentUserRole =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("x-user-role") ?? "")
-      : "";
-  const isAdmin = currentUserRole === "ADMIN";
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    setIsAdmin(localStorage.getItem("x-user-role") === "ADMIN");
+  }, []);
 
   const fetchUsers = useCallback(
     async (filters: { q?: string; role?: string; status?: string }) => {
