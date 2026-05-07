@@ -3,6 +3,8 @@
 contexts/
 plan/
 .agents/
+ai/
+.claude/
 
 # Pasta com dados privados
 data/

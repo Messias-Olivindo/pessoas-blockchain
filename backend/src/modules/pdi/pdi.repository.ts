@@ -18,7 +18,7 @@ export class PdiRepository {
     });
   }
 
-  create(payload: CreatePdiEntryDto) {
+  create(payload: CreatePdiEntryDto & { authorId: string }) {
     return this.prisma.pdiEntry.create({
       data: {
         memberId: payload.memberId,
@@ -49,29 +49,31 @@ export class PdiRepository {
     payload: { title?: string; content?: string; isActive?: boolean },
     editorId: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.pdiEntry.update({
-        where: { id },
-        data: {
-          title: payload.title,
-          content: payload.content,
-          isActive: payload.isActive,
-        },
-      });
-
-      // Only create a revision when content actually changes
-      if (payload.content) {
-        await tx.pdiEntryRevision.create({
+    return this.prisma.$transaction(
+      async (tx) => {
+        const updated = await tx.pdiEntry.update({
+          where: { id },
           data: {
-            pdiEntryId: id,
-            editorId,
+            title: payload.title,
             content: payload.content,
+            isActive: payload.isActive,
           },
         });
-      }
 
-      return updated;
-    });
+        if (payload.content) {
+          await tx.pdiEntryRevision.create({
+            data: {
+              pdiEntryId: id,
+              editorId,
+              content: payload.content,
+            },
+          });
+        }
+
+        return updated;
+      },
+      { timeout: 30000 },
+    );
   }
 
   createRevision(pdiEntryId: string, payload: CreatePdiRevisionDto) {

@@ -1,0 +1,10 @@
+{
+  "name": "gestao-pessoas",
+  "private": true,
+  "scripts": {
+    "dev": "bash -c 'fuser -k 3000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; trap \"kill 0\" EXIT INT TERM; npm --prefix frontend run dev & npm --prefix backend run start:dev & wait'",
+    "dev:front": "npm --prefix frontend run dev",
+    "dev:back": "npm --prefix backend run start:dev",
+    "stop": "pkill -f \"gestao_pessoas/frontend\" 2>/dev/null; pkill -f \"gestao_pessoas/backend\" 2>/dev/null; echo 'Processos encerrados.'"
+  }
+}

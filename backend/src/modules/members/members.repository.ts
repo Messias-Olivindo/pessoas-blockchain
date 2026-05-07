@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Department, MemberStatus, Position, Prisma } from '@prisma/client';
+import { Department, Member, MemberStatus, Position, Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma/prisma.service';
 import { CreateMemberAssignmentDto } from './dto/create-member-assignment.dto';
 import { CreateMemberDto } from './dto/create-member.dto';
@@ -12,7 +12,7 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 export class MembersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findMany(params: {
+  async findMany(params: {
     status?: string;
     department?: string;
     position?: string;
@@ -23,7 +23,7 @@ export class MembersRepository {
     q?: string;
     cursor?: string;
     limit: number;
-  }) {
+  }): Promise<Member[]> {
     const where: Prisma.MemberWhereInput = {};
 
     if (params.status) {
@@ -52,21 +52,45 @@ export class MembersRepository {
       where.isLgbtqia = normalized;
     }
 
-    if (params.interests) {
-      const interests = params.interests
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean);
-      if (interests.length) {
-        where.interests = { hasSome: interests };
-      }
-    }
-
     if (params.q) {
       where.OR = [
         { name: { contains: params.q, mode: 'insensitive' } },
         { email: { contains: params.q, mode: 'insensitive' } },
       ];
+    }
+
+    const interestTerms = params.interests
+      ? params.interests
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : [];
+
+    if (interestTerms.length > 0) {
+      // Fetch all matching records (without interests filter) then
+      // filter in JS using Unicode normalization for accent+case insensitivity.
+      const all = await this.prisma.member.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const normalize = (s: string) =>
+        s.toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, '');
+
+      const normalizedTerms = interestTerms.map(normalize);
+
+      const filtered = all.filter((m) =>
+        m.interests?.some((interest) =>
+          normalizedTerms.some((term) => normalize(interest).includes(term)),
+        ),
+      );
+
+      let start = 0;
+      if (params.cursor) {
+        const idx = filtered.findIndex((m) => m.id === params.cursor);
+        start = idx >= 0 ? idx + 1 : 0;
+      }
+      return filtered.slice(start, start + params.limit);
     }
 
     return this.prisma.member.findMany({

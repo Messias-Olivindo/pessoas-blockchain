@@ -69,7 +69,14 @@ export class SelectionRepository {
   getProcess(processId: string) {
     return this.prisma.selectionProcess.findUnique({
       where: { id: processId },
-      include: { stages: true },
+      include: {
+        stages: {
+          orderBy: { order: 'asc' },
+          include: {
+            questions: { orderBy: { order: 'asc' } },
+          },
+        },
+      },
     });
   }
 
@@ -157,12 +164,83 @@ export class SelectionRepository {
       skip: params.cursor ? 1 : 0,
       cursor: params.cursor ? { id: params.cursor } : undefined,
       orderBy: { createdAt: 'desc' },
+      include: {
+        member: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            gender: true,
+            race: true,
+            isLgbtqia: true,
+          },
+        },
+        process: {
+          select: { id: true, name: true, year: true },
+        },
+        results: {
+          include: {
+            stage: { select: { id: true, title: true, order: true } },
+          },
+          orderBy: { stage: { order: 'asc' } },
+        },
+      },
     });
   }
 
   getApplication(applicationId: string) {
     return this.prisma.application.findUnique({
       where: { id: applicationId },
+      include: {
+        member: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            gender: true,
+            race: true,
+            isLgbtqia: true,
+          },
+        },
+        process: {
+          select: { id: true, name: true, year: true },
+        },
+        results: {
+          include: {
+            stage: { select: { id: true, title: true, order: true } },
+          },
+          orderBy: { stage: { order: 'asc' } },
+        },
+        answers: {
+          include: {
+            question: {
+              select: {
+                id: true,
+                title: true,
+                order: true,
+                stageId: true,
+                stage: { select: { id: true, title: true, order: true } },
+              },
+            },
+          },
+          orderBy: { question: { order: 'asc' } },
+        },
+        evaluations: {
+          include: {
+            question: {
+              select: {
+                id: true,
+                title: true,
+                order: true,
+                maxScore: true,
+                stageId: true,
+                stage: { select: { id: true, title: true, order: true } },
+              },
+            },
+          },
+          orderBy: { question: { order: 'asc' } },
+        },
+      },
     });
   }
 

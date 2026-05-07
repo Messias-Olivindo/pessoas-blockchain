@@ -60,15 +60,16 @@ export class PdiController {
   }
 
   /**
-   * Create a PDI entry.
+   * Create a PDI entry. authorId is inferred from the authenticated user header.
    */
   @Post()
   @Roles('ADMIN', 'PEOPLE')
   @ApiOperation({ summary: 'Create PDI entry' })
   @ApiBody({ type: CreatePdiEntryDto })
   @ApiOkResponse({ description: 'PDI entry created.' })
-  create(@Body() body: CreatePdiEntryDto) {
-    return this.pdiService.create(body);
+  create(@Body() body: CreatePdiEntryDto, @Req() req: Request) {
+    const authorId = (req.user as { id: string })?.id;
+    return this.pdiService.create({ ...body, authorId: body.authorId ?? authorId });
   }
 
   /**

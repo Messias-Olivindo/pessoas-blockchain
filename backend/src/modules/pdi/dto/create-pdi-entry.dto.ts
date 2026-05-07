@@ -6,9 +6,10 @@ export class CreatePdiEntryDto {
   @IsString()
   memberId!: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  authorId!: string;
+  authorId?: string;
 
   @ApiProperty()
   @IsString()

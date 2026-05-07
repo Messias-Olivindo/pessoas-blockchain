@@ -42,7 +42,7 @@ export class PdiService {
    * @param payload - Dados de criação do PDI (título, conteúdo, ID do membro e ID do autor).
    * @returns A entrada de PDI recém-criada.
    */
-  create(payload: CreatePdiEntryDto) {
+  create(payload: CreatePdiEntryDto & { authorId: string }) {
     return this.pdiRepository.create(payload);
   }
 
