@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Eye,
   Loader2,
 } from "lucide-react";
 import { useState, useEffect, use, useMemo } from "react";
@@ -683,9 +682,6 @@ export default function SelectionProcessPage({
                   sortDir={sortDir}
                   onSort={handleSort}
                 />
-                <th className="p-3 font-bold text-white w-12">
-                  <Eye size={14} className="opacity-50" />
-                </th>
               </tr>
             </thead>
             <tbody className="bg-[var(--color-primary-bg)]">
@@ -704,7 +700,8 @@ export default function SelectionProcessPage({
                   return (
                     <tr
                       key={app.id}
-                      className="border-b-[3px] border-[var(--color-tertiary-bg)] last:border-b-0 hover:bg-[var(--color-secondary-bg)] transition-colors"
+                      onClick={() => setSelectedAppId(app.id)}
+                      className="border-b-[3px] border-[var(--color-tertiary-bg)] last:border-b-0 hover:bg-[var(--color-secondary-bg)] transition-colors cursor-pointer"
                     >
                       <td className="p-3 text-[var(--color-text-main)] opacity-40 font-mono text-xs">
                         {idx + 1}
@@ -763,18 +760,6 @@ export default function SelectionProcessPage({
                         </span>
                       </td>
 
-                      <td className="p-3">
-                        <button
-                          onClick={() => setSelectedAppId(app.id)}
-                          className="p-1.5 rounded-lg hover:bg-[var(--color-tertiary-bg)] transition-colors"
-                          title="Ver respostas e avaliações"
-                        >
-                          <Eye
-                            size={16}
-                            className="text-[var(--color-accent-blue)]"
-                          />
-                        </button>
-                      </td>
                     </tr>
                   );
                 })
