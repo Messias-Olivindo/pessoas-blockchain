@@ -75,11 +75,13 @@ export class AuthRepository {
           name: profile.name ?? null,
           image: profile.picture ?? null,
           emailVerified: new Date(),
+          status: 'APPROVED',
         },
         update: {
           name: profile.name ?? undefined,
           image: profile.picture ?? undefined,
           emailVerified: new Date(),
+          status: 'APPROVED',
         },
       });
 

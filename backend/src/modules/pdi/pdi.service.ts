@@ -42,7 +42,7 @@ export class PdiService {
    * @param payload - Dados de criação do PDI (título, conteúdo, ID do membro e ID do autor).
    * @returns A entrada de PDI recém-criada.
    */
-  create(payload: CreatePdiEntryDto & { authorId: string }) {
+  create(payload: CreatePdiEntryDto & { authorId?: string }) {
     return this.pdiRepository.create(payload);
   }
 
@@ -55,7 +55,7 @@ export class PdiService {
    * @param editorId - ID do usuário que está editando.
    * @returns A entrada de PDI atualizada.
    */
-  update(id: string, payload: UpdatePdiEntryDto, editorId: string) {
+  update(id: string, payload: UpdatePdiEntryDto, editorId?: string) {
     return this.pdiRepository.update(id, payload, editorId);
   }
 

@@ -4,15 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Users, ShieldCheck, ClipboardList, LogOut, LayoutDashboard, UserCog } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isPeople, setIsPeople] = useState(false);
 
-  const role =
-    typeof window !== "undefined"
-      ? (localStorage.getItem("x-user-role") ?? "")
-      : "";
-  const isPeople = role === "ADMIN" || role === "PEOPLE";
+  useEffect(() => {
+    const role = localStorage.getItem("x-user-role") ?? "";
+    setIsPeople(role === "ADMIN" || role === "PEOPLE");
+  }, []);
 
   const links = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },

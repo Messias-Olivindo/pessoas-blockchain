@@ -56,10 +56,6 @@ async function bootstrap() {
     )
     .setVersion('1.0.0')
     .addApiKey({ type: 'apiKey', name: 'x-user-id', in: 'header' }, 'x-user-id')
-    .addApiKey(
-      { type: 'apiKey', name: 'x-user-role', in: 'header' },
-      'x-user-role',
-    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);

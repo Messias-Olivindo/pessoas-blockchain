@@ -1,29 +1,46 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { PrismaService } from '../../shared/database/prisma/prisma.service';
 
 /**
- * Simple auth guard for MVP using headers as a temporary identity source.
+ * Auth guard that validates x-user-id against the database.
+ *
+ * Role is read from the DB — the x-user-role header is intentionally ignored
+ * to prevent privilege escalation by a client-side header forgery.
+ * Only APPROVED users can access protected endpoints.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const userId = request.header('x-user-id');
-    const role = request.header('x-user-role');
 
-    if (!userId || !role) {
+    if (!userId) {
       throw new UnauthorizedException('Usuario nao autenticado.');
     }
 
-    request.user = {
-      id: userId,
-      role,
-    } as Request['user'];
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, status: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario nao encontrado.');
+    }
+
+    if (user.status !== 'APPROVED') {
+      throw new ForbiddenException('Conta pendente de aprovacao.');
+    }
+
+    request.user = { id: user.id, role: user.role } as Request['user'];
 
     return true;
   }

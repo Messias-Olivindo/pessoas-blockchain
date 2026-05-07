@@ -509,15 +509,17 @@ export default function MemberProfilePage({
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingMember, setLoadingMember] = useState(true);
   const [loadingApps, setLoadingApps] = useState(true);
-
-  const canEdit =
-    typeof window !== "undefined" &&
-    ["ADMIN", "PEOPLE"].includes(localStorage.getItem("x-user-role") ?? "");
+  const [canEdit, setCanEdit] = useState(false);
 
   // Edit state
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<Member>>({});
+
+  useEffect(() => {
+    const role = localStorage.getItem("x-user-role") ?? "";
+    setCanEdit(["ADMIN", "PEOPLE"].includes(role));
+  }, []);
 
   useEffect(() => {
     membersService
@@ -532,7 +534,10 @@ export default function MemberProfilePage({
     selectionService
       .getMemberApplications(memberId)
       .then(setApplications)
-      .catch(() => {})
+      .catch((err) => {
+        const status = err?.response?.status;
+        if (status !== 404) console.error("getMemberApplications:", status, err?.message);
+      })
       .finally(() => setLoadingApps(false));
   }, [memberId]);
 

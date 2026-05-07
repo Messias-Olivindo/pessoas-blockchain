@@ -229,6 +229,7 @@ function ProcessCard({ process }: { process: SelectionProcess }) {
 export default function SelectionPage() {
   const [processes, setProcesses] = useState<SelectionProcess[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const role =
     typeof window !== "undefined"
@@ -240,8 +241,10 @@ export default function SelectionPage() {
     try {
       const data = await selectionService.getProcesses();
       setProcesses(data);
-    } catch {
-      // silently fail
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 403) setError("Sem permissão para acessar processos seletivos.");
+      else setError("Erro ao carregar processos. Verifique se o backend está rodando.");
     } finally {
       setLoading(false);
     }
@@ -275,6 +278,10 @@ export default function SelectionPage() {
       {loading ? (
         <div className="card w-full min-h-75 flex items-center justify-center">
           <p className="opacity-60">Carregando processos...</p>
+        </div>
+      ) : error ? (
+        <div className="card w-full min-h-50 flex items-center justify-center">
+          <p className="text-sm text-red-400">{error}</p>
         </div>
       ) : processes.length === 0 ? (
         <div className="card w-full min-h-50 flex items-center justify-center">

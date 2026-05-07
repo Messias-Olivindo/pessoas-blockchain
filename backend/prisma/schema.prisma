@@ -306,7 +306,7 @@ model SelectionAnswer {
 model PdiEntry {
     id        String   @id @default(uuid())
     memberId  String
-    authorId  String
+    authorId  String?
     title     String
     content   String   @db.Text
     isActive  Boolean  @default(true)
@@ -314,7 +314,7 @@ model PdiEntry {
     updatedAt DateTime @updatedAt
 
     member    Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
-    author    User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    author    User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
     revisions PdiEntryRevision[]
 
     @@index([memberId])
@@ -324,12 +324,12 @@ model PdiEntry {
 model PdiEntryRevision {
     id         String   @id @default(uuid())
     pdiEntryId String
-    editorId   String
+    editorId   String?
     content    String   @db.Text
     createdAt  DateTime @default(now())
 
     pdiEntry PdiEntry @relation(fields: [pdiEntryId], references: [id], onDelete: Cascade)
-    editor   User     @relation(fields: [editorId], references: [id], onDelete: Cascade)
+    editor   User?    @relation(fields: [editorId], references: [id], onDelete: SetNull)
 
     @@index([pdiEntryId])
     @@index([editorId])

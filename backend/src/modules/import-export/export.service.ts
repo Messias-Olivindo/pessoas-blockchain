@@ -112,7 +112,7 @@ export class ExportService {
       EmailMembro: e.member.email,
       Titulo: e.title,
       Conteudo: e.content.substring(0, 500),
-      Autor: e.author.name || e.author.email,
+      Autor: e.author?.name || e.author?.email || 'N/A',
       Ativo: e.isActive ? 'Sim' : 'Nao',
       CriadoEm: e.createdAt.toISOString().split('T')[0],
       AtualizadoEm: e.updatedAt.toISOString().split('T')[0],
@@ -253,7 +253,7 @@ export class ExportService {
           doc.fillColor('#333333').fontSize(11).text(pdi.title, 50, y);
           y += 16;
           doc.fillColor('#888888').fontSize(8)
-            .text(`Autor: ${pdi.author.name || 'N/A'} | ${pdi.createdAt.toLocaleDateString('pt-BR')}`, 50, y);
+            .text(`Autor: ${pdi.author?.name || 'N/A'} | ${pdi.createdAt.toLocaleDateString('pt-BR')}`, 50, y);
           y += 14;
 
           const content = pdi.content.length > 300 ? pdi.content.substring(0, 300) + '...' : pdi.content;

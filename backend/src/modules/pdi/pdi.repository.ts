@@ -18,11 +18,11 @@ export class PdiRepository {
     });
   }
 
-  create(payload: CreatePdiEntryDto & { authorId: string }) {
+  create(payload: CreatePdiEntryDto & { authorId?: string }) {
     return this.prisma.pdiEntry.create({
       data: {
         memberId: payload.memberId,
-        authorId: payload.authorId,
+        authorId: payload.authorId ?? null,
         title: payload.title,
         content: payload.content,
         isActive: payload.isActive ?? true,
@@ -47,7 +47,7 @@ export class PdiRepository {
   async update(
     id: string,
     payload: { title?: string; content?: string; isActive?: boolean },
-    editorId: string,
+    editorId?: string,
   ) {
     return this.prisma.$transaction(
       async (tx) => {
@@ -64,7 +64,7 @@ export class PdiRepository {
           await tx.pdiEntryRevision.create({
             data: {
               pdiEntryId: id,
-              editorId,
+              editorId: editorId ?? null,
               content: payload.content,
             },
           });
