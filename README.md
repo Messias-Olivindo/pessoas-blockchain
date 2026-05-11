@@ -1,69 +1,163 @@
-# ⛓️ Inteli Blockchain - Member Management System
+# Inteli Blockchain — Gestão de Pessoas
 
-Plataforma interna desenvolvida para gerenciar a jornada dos integrantes do clube Inteli Blockchain. O sistema centraliza a administração de processos seletivos, feedbacks e Planos de Desenvolvimento Individual (PDI), substituindo planilhas isoladas e documentos soltos.
+Plataforma interna para gerenciar a jornada dos integrantes do clube Inteli Blockchain. Centraliza processos seletivos, avaliações, feedbacks e Planos de Desenvolvimento Individual (PDI), substituindo planilhas isoladas.
 
-## 🏗️ Estrutura do Projeto (Monorepo)
+## Stack
 
-O projeto utiliza **npm workspaces** para agrupar o frontend e o backend em um único repositório, facilitando a navegação e o compartilhamento de configurações globais, mantendo as dependências isoladas.
-```text
+| Camada | Tecnologia | Deploy |
+|--------|-----------|--------|
+| Frontend | Next.js 15+ (App Router), React 19, Tailwind CSS v4, TypeScript | Vercel — Root Directory: `frontend` |
+| Backend | NestJS 11, TypeScript, Swagger, Prisma 6.x | Fly.io via Docker — app `pessoas-blockchain` |
+| Banco de Dados | PostgreSQL (Supabase, AWS us-east-1) | Supabase |
+| Auth | Google OAuth 2.0 + DB-validated header guard | `google-auth-library` |
+
+## Estrutura do Monorepo
+
+```
 .
-├── backend/       # API RESTful (NestJS + Prisma)
-├── frontend/      # Aplicação Web (Next.js 15+ App Router)
-├── docs/          # Documentação técnica da aplicação
-└── package.json   # Gerenciador do Workspace (configuração raiz)
+├── backend/          # API RESTful (NestJS + Prisma)
+├── frontend/         # Interface web (Next.js App Router)
+├── data/             # Planilhas xlsx para seed
+├── docs/             # Documentação técnica (ARCHITECTURE.md)
+├── ai/               # Contexto e workflow para agentes de IA
+│   ├── contexts/     # essential.md — referência principal do projeto
+│   ├── plans/        # Planos de funcionalidades aprovados antes de implementar
+│   └── WORKFLOW.md   # Processo: contexto → plano → aprovação → implementação
+└── package.json      # Scripts do monorepo
 ```
 
-## 💻 Tecnologias Utilizadas
+## Pré-requisitos
 
-*   **Frontend:** Next.js, React, Tailwind CSS.
-*   **Backend:** NestJS, TypeScript.
-*   **Banco de Dados:** PostgreSQL (hospedado no Supabase) via Prisma ORM.
-*   **Infraestrutura:** Vercel (Frontend) e Railway via Docker (Backend).
+- Node.js 20+
+- npm 10+
+- Conta Supabase com banco PostgreSQL criado
+- Credenciais Google OAuth 2.0 (Google Cloud Console)
 
-## 🛠️ Pré-requisitos
+## Setup Local
 
-Antes de iniciar, certifique-se de ter instalado em sua máquina:
-*   [Node.js](https://nodejs.org/en/) (v20 ou superior)
-*   [npm](https://www.npmjs.com/) (Gerenciador de pacotes padrão deste repositório)
-*   [Docker](https://www.docker.com/) (Recomendado para simular infraestrutura local)
+### 1. Instalar dependências
 
-## 🚀 Como rodar o projeto localmente
-
-Como o projeto utiliza npm workspaces, grande parte da instalação pode ser feita diretamente da raiz.
-
-**1. Clone o repositório e instale as dependências globais:**
 ```bash
-git clone 
-cd 
-npm install
+git clone <repo>
+cd gestao_pessoas
+npm install --prefix backend
+npm install --prefix frontend
 ```
 
-**2. Configure as Variáveis de Ambiente:**
-*   Acesse a pasta `backend/` e crie seu arquivo `.env` (use o `.env.example` como base). Adicione a URL do PostgreSQL fornecida pelo Supabase.
-*   Acesse a pasta `frontend/` e crie o `.env` com as chaves públicas necessárias (ex: URLs da API).
+### 2. Configurar variáveis de ambiente
 
-**3. Inicie os servidores (Desenvolvimento):**
+**Backend** — criar `backend/.env`:
 
-Para rodar a API (Backend) - Porta padrão `3001` (ou a configurada):
+```env
+DATABASE_URL="postgresql://user:pass@host:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://user:pass@host:5432/postgres"
+PORT=3001
+NODE_ENV=development
+GOOGLE_CLIENT_ID="<seu-client-id>.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="<seu-client-secret>"
+GOOGLE_OAUTH_REDIRECT_URI="http://localhost:3001/auth/google/callback"
+FRONTEND_URL="http://localhost:3000"
+```
+
+**Frontend** — criar `frontend/.env`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+### 3. Aplicar migrations e popular banco
+
 ```bash
-npm run start:dev --workspace=backend
+cd backend
+npx prisma migrate deploy      # aplica todas as migrations
+npx ts-node scripts/seed.ts    # popula com dados reais dos xlsx em data/
 ```
 
-Para rodar a Interface (Frontend) - Porta padrão `3000`:
+> O seed imprime todos os `x-user-id` criados. Use o ID do admin para o primeiro login local.
+
+### 4. Rodar em desenvolvimento
+
 ```bash
-npm run dev --workspace=frontend
+# Da raiz — roda frontend (3000) e backend (3001) em paralelo
+npm run dev
+
+# Individualmente
+npm run dev:front   # Next.js em localhost:3000
+npm run dev:back    # NestJS em localhost:3001 (hot reload)
 ```
 
-## 🚢 Deploy e Hospedagem
+### 5. Primeiro acesso local
 
-Como este é um repositório único dividindo duas aplicações separadas, a configuração de deploy exige atenção ao **Diretório Raiz (Root Directory)** em cada plataforma:
+Após o seed, acesse:
 
-*   **Vercel (Frontend):** Ao importar o projeto, altere o "Root Directory" de `./` para `frontend`. A Vercel detectará o Next.js e fará o build automaticamente.
-*   **Railway (Backend):** Ao conectar o repositório, vá em *Settings* do serviço e altere o "Root Directory" para `backend`. Certifique-se de que o seu `Dockerfile` está na raiz da pasta `backend/` para que o Railway consiga orquestrar o container do NestJS.
+```
+http://localhost:3000/dashboard?userId=00000000-0000-0000-0000-000000000001&role=ADMIN
+```
 
-## 🤝 Padrões de Contribuição
+Isso inicializa a sessão no localStorage sem precisar de OAuth.
 
-Para garantir a escalabilidade e manutenção por futuras diretorias:
-1.  Crie *branches* com nomes descritivos: `feat/nova-tabela-ps`, `fix/bug-login`.
-2.  Mantenha as responsabilidades separadas: O `frontend/` não deve fazer queries SQL diretas, apenas consumir os *endpoints* disponibilizados pelo `backend/`.
-3.  Documente novos módulos criados no NestJS e atualize este README caso a infraestrutura mude.
+## Auth Flow
+
+1. `GET /auth/google` → redireciona para consentimento Google
+2. Google redireciona para `/auth/google/callback?code=...`
+3. Backend troca code por tokens, faz upsert do User + Account no DB
+4. Backend redireciona para `/dashboard?userId=<id>&role=<role>`
+5. Frontend armazena `x-user-id` e `x-user-role` no localStorage
+6. Cada request Axios envia `x-user-id` no header
+7. `AuthGuard` valida o user no banco (role lida do DB, não do header)
+
+**Domínio restrito:** apenas emails `@sou.inteli.edu.br` podem autenticar.
+
+## Roles e Permissões
+
+| Role | Acesso |
+|------|--------|
+| **ADMIN** | Irrestrito. Pode alterar roles de outros usuários. UUID fixo no seed: `00000000-0000-0000-0000-000000000001` |
+| **PEOPLE** | Gerencia membros, PDI, processos seletivos e usuários (exceto alterar roles) |
+| **INTERVIEWER** | Leitura de membros, leitura e avaliação de candidatos no processo seletivo |
+
+## Deploy
+
+### Backend (Fly.io)
+
+```bash
+cd backend
+fly deploy
+```
+
+- Release command automático: `npx prisma migrate deploy`
+- Região: `iad` (US East)
+- Recursos: 1 vCPU compartilhado, 1 GB RAM
+
+### Frontend (Vercel)
+
+Configurar no dashboard da Vercel:
+- **Root Directory:** `frontend`
+- **Environment Variable:** `NEXT_PUBLIC_API_URL=https://pessoas-blockchain.fly.dev`
+
+## Comandos Úteis
+
+```bash
+# Backend
+cd backend
+npm run start:dev          # desenvolvimento com hot reload
+npm run build              # compilar TypeScript
+npm run test               # rodar 59 testes unitários
+npx prisma studio          # GUI do banco de dados
+npx ts-node scripts/seed.ts  # repopular banco com dados reais
+
+# Frontend
+cd frontend
+npm run dev                # desenvolvimento
+npm run build              # build de produção
+npx tsc --noEmit           # verificar tipos TypeScript
+```
+
+## Documentação
+
+- **Arquitetura completa:** `docs/ARCHITECTURE.md`
+- **Contexto do projeto (IA):** `ai/contexts/essential.md`
+- **API Swagger:** `http://localhost:3001/docs` (local) ou `https://pessoas-blockchain.fly.dev/docs`
+- **Backend detalhado:** `backend/README.md`
+- **Frontend detalhado:** `frontend/README.md`
+- **Workflow de desenvolvimento:** `ai/WORKFLOW.md`

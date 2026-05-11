@@ -1,98 +1,255 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Backend — Inteli Blockchain Gestão de Pessoas
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API RESTful construída com NestJS 11 + Prisma 6 + PostgreSQL (Supabase).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+- **Runtime:** Node.js 20
+- **Framework:** NestJS 11
+- **ORM:** Prisma 6.x
+- **Banco:** PostgreSQL via Supabase (pgbouncer para pool, URL direta para migrations)
+- **Auth:** Google OAuth 2.0 (`google-auth-library`) + DB-validated header guard
+- **Docs:** Swagger em `/docs`
+- **Testes:** Jest + ts-jest (59 testes unitários em 6 suites)
+- **Deploy:** Fly.io via Docker (`pessoas-blockchain`)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Setup
 
 ```bash
-$ npm install
+npm install
+cp .env.example .env   # editar com suas credenciais
+
+npx prisma migrate deploy        # aplicar migrations
+npx prisma generate              # gerar Prisma client
+npx ts-node scripts/seed.ts      # popular banco com dados reais
+
+npm run start:dev                # rodar com hot reload em localhost:3001
 ```
 
-## Compile and run the project
+## Variáveis de Ambiente
+
+```env
+DATABASE_URL="postgresql://user:pass@host:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://user:pass@host:5432/postgres"
+PORT=3001
+NODE_ENV=development
+GOOGLE_CLIENT_ID="<id>.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="<secret>"
+GOOGLE_OAUTH_REDIRECT_URI="http://localhost:3001/auth/google/callback"
+FRONTEND_URL="http://localhost:3000"
+```
+
+## Arquitetura
+
+### Padrão por módulo
+
+```
+Controller → Service → Repository → PrismaService → PostgreSQL
+     │
+     ├── AuthGuard (valida x-user-id no DB → seta request.user com role real)
+     ├── RolesGuard (@Roles() → verifica request.user.role)
+     └── DTOs (class-validator, whitelist, forbidNonWhitelisted)
+```
+
+### Módulos
+
+| Módulo | Responsabilidade | Rotas |
+|--------|-----------------|-------|
+| `auth` | Google OAuth 2.0, guard DB-validated | 3 |
+| `users` | CRUD usuários, aprovação, roles | 4 |
+| `members` | CRUD membros, filtros, assignments | 8 |
+| `selection` | Processos, etapas, questões, candidaturas, resultados, avaliações, respostas | 24+ |
+| `pdi` | Plano de Desenvolvimento Individual com auto-revisão em transação | 5 |
+| `import-export` | Import xlsx/csv, export csv/pdf | 6 |
+
+### Shared
+
+| Componente | Função |
+|-----------|--------|
+| `PrismaService` | `@Global()` — injetável em qualquer módulo sem importar PrismaModule |
+| `ResponseInterceptor` | Envelopa **todas** as respostas: `{status, message, success, data, error, meta}` |
+| `HttpExceptionFilter` | Mapeia erros para: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `INTERNAL_ERROR` |
+| `AuthGuard` | Valida `x-user-id` no banco — role lida do DB, ignora `x-user-role` header |
+| `RolesGuard` | Verifica `request.user.role` contra `@Roles()` decorator |
+
+## Padrão de Resposta
+
+Todas as respostas seguem o envelope (sucesso e erro):
+
+```json
+{
+  "status": 200,
+  "message": "OK",
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "meta": { "nextCursor": "...", "limit": 20 }
+}
+```
+
+O frontend sempre lê `response.data?.data`.
+
+## Auth Guard (DB-Validated)
+
+```
+Request → header x-user-id
+        → prisma.user.findUnique({ where: { id } })
+        → 401 se usuário não encontrado
+        → 403 se status != APPROVED
+        → request.user = { id, role }  ← role do banco, nunca do header
+```
+
+`x-user-role` header é **enviado** pelo frontend (para routing de UI), mas **ignorado** pelo backend para autorização.
+
+## RBAC
+
+| Endpoint | ADMIN | PEOPLE | INTERVIEWER |
+|----------|:-----:|:------:|:-----------:|
+| GET /members | ✅ | ✅ | ✅ |
+| POST/PATCH /members | ✅ | ✅ | ❌ |
+| GET /selection/* | ✅ | ✅ | ✅ |
+| POST/PATCH /selection/* (avaliações) | ✅ | ✅ | ✅ |
+| POST/PATCH /selection/* (outros) | ✅ | ✅ | ❌ |
+| GET/POST/PATCH /pdi | ✅ | ✅ | ❌ |
+| GET/PATCH /users | ✅ | ✅ | ❌ |
+| PATCH /users/:id/role | ✅ | ❌ | ❌ |
+| Import/Export | ✅ | ✅ | ❌ |
+
+## Endpoints
+
+### Auth
+```
+GET  /auth/me                    → usuário autenticado (AuthGuard)
+GET  /auth/google                → redirect Google OAuth (público)
+GET  /auth/google/callback       → callback OAuth (público)
+```
+
+### Users
+```
+GET    /users
+GET    /users/:id
+PATCH  /users/:id/approve        → ADMIN, PEOPLE
+PATCH  /users/:id/role           → ADMIN
+```
+
+### Members
+```
+GET    /members                  → cursor pagination + filtros (q, status, department, position, interests)
+POST   /members                  → ADMIN, PEOPLE
+GET    /members/:id
+PATCH  /members/:id              → ADMIN, PEOPLE
+PATCH  /members/:id/status       → ADMIN, PEOPLE
+GET    /members/:id/assignments
+POST   /members/:id/assignments  → ADMIN, PEOPLE
+PATCH  /members/assignments/:id  → ADMIN, PEOPLE
+```
+
+### Selection
+```
+GET    /selection/processes
+POST   /selection/processes               → ADMIN, PEOPLE
+GET    /selection/processes/:id           → inclui stages + questions
+PATCH  /selection/processes/:id           → ADMIN, PEOPLE
+
+GET    /selection/processes/:id/stages
+POST   /selection/processes/:id/stages    → ADMIN, PEOPLE
+PATCH  /selection/stages/:id              → ADMIN, PEOPLE
+
+GET    /selection/stages/:id/questions
+POST   /selection/stages/:id/questions    → ADMIN, PEOPLE
+PATCH  /selection/questions/:id           → ADMIN, PEOPLE
+
+GET    /selection/applications            → filtros por processId, memberId, status
+POST   /selection/applications            → ADMIN, PEOPLE
+GET    /selection/applications/:id        → inclui answers + evaluations
+PATCH  /selection/applications/:id/submit
+PATCH  /selection/applications/:id/status → ADMIN, PEOPLE
+
+GET    /selection/applications/:id/results
+PATCH  /selection/applications/:id/results/:stageId  → ADMIN, PEOPLE
+
+GET    /selection/applications/:id/answers
+POST   /selection/applications/:id/answers
+PATCH  /selection/applications/:id/answers/:questionId
+
+GET    /selection/applications/:id/evaluations
+POST   /selection/applications/:id/evaluations        → ADMIN, PEOPLE, INTERVIEWER
+PATCH  /selection/applications/:id/evaluations/:questionId → ADMIN, PEOPLE, INTERVIEWER
+```
+
+### PDI
+```
+GET    /pdi                      → filtro por memberId
+POST   /pdi                      → ADMIN, PEOPLE
+GET    /pdi/:id
+PATCH  /pdi/:id                  → cria PdiEntryRevision se content mudou (transação 30s timeout)
+POST   /pdi/:id/revisions        → ADMIN, PEOPLE
+```
+
+### Import / Export
+```
+POST   /import/members           → xlsx/csv → ADMIN, PEOPLE
+POST   /import/selection         → xlsx/csv → ADMIN, PEOPLE
+GET    /export/members/csv       → ADMIN, PEOPLE
+GET    /export/members/:id/pdf   → ADMIN, PEOPLE
+GET    /export/selection/:id/csv → ADMIN, PEOPLE
+GET    /export/pdi/csv           → ADMIN, PEOPLE
+```
+
+## Paginação por Cursor
+
+```
+GET /members?cursor=<uuid>&limit=20&sort=createdAt&direction=asc
+```
+
+`meta` retorna: `nextCursor`, `prevCursor`, `limit`, `sort`.
+
+## PDI — Auto-Revisão
+
+`PATCH /pdi/:id` cria `PdiEntryRevision` automaticamente se `content` mudou.
+Executado em `prisma.$transaction` (timeout 30s para Supabase remoto).
+
+`authorId` e `editorId` são **nullable** — PDI funciona mesmo sem User válido no banco (migration `20260507091047_make_pdi_author_optional`).
+
+## Seed
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npx ts-node scripts/seed.ts
 ```
 
-## Run tests
+Lê `data/[CENTRAL] BLOCKCHAIN INTEGRANTES.xlsx` e `data/Aprovados 2026.xlsx`:
+
+| Entidade | Qtd |
+|----------|-----|
+| Members | 41 |
+| Processos Seletivos | 2 (PS 2026.1 e PS 2026.2 Ano) |
+| Etapas | 5 (3 + 2) |
+| Questões | 21 (12 + 9) |
+| Candidaturas | 25 |
+| Avaliações | 201 |
+| Respostas | 70 |
+| Users | Todos ACTIVE da diretoria Pessoas (PEOPLE) + admin (ADMIN) |
+
+Admin UUID fixo: `00000000-0000-0000-0000-000000000001`
+
+O seed imprime todos os `x-user-id` criados — usar para autenticar localmente via `?userId=&role=`.
+
+## Testes
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run test        # unitários (59 testes, 6 suites)
+npm run test:cov    # com cobertura de código
+npm run test:e2e    # end-to-end
 ```
 
-## Deployment
+Suites: App, GoogleOAuth, Users, Members, Selection, PDI.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Deploy (Fly.io)
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+fly deploy
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+`fly.toml` configura release command `npx prisma migrate deploy` automático.
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Dockerfile: multi-stage (builder compila TypeScript + gera Prisma → runner Node 20 slim em produção).
