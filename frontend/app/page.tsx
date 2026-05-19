@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ShieldCheck, Database, FileSpreadsheet } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
@@ -22,18 +23,20 @@ export default function LandingPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-[var(--color-accent-magenta)] rounded-full blur-[100px] opacity-20 z-0"></div>
 
       <main className="z-10 max-w-4xl w-full flex flex-col items-center text-center gap-8">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="flex flex-col gap-4 items-center"
         >
-          <div className="bg-[var(--color-secondary-bg)] border-[3px] border-[var(--color-accent-blue)] rounded-[20px] p-4 inline-block mb-4">
-            <ShieldCheck size={48} className="text-[var(--color-accent-blue)]" />
-          </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white drop-shadow-md">
-            Inteli <span className="text-[var(--color-accent-blue)]">Blockchain</span>
-          </h1>
+          <Image
+            src="/logo_texto.png"
+            alt="Inteli Blockchain"
+            width={4000}
+            height={2000}
+            priority
+            className="h-56 md:h-80 w-auto mb-2 drop-shadow-md "
+          />
           <p className="text-xl md:text-2xl text-[var(--color-text-main)] max-w-2xl font-light">
             Plataforma centralizada para Gestão de Pessoas, Processos Seletivos e Planos de Desenvolvimento Individual.
           </p>

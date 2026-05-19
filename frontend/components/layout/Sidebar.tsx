@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Users, ShieldCheck, ClipboardList, LogOut, LayoutDashboard, UserCog, X } from "lucide-react";
+import { Users, ClipboardList, LogOut, LayoutDashboard, UserCog, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
@@ -34,13 +35,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const sidebarContent = (
     <div className="w-64 bg-secondary-bg border-r-[3px] border-tertiary-bg h-full flex flex-col">
       <div className="p-6 flex items-center justify-between border-b-[3px] border-tertiary-bg">
-        <div className="flex items-center gap-3">
-          <ShieldCheck size={32} className="text-accent-blue" />
-          <h2 className="text-xl font-bold text-white">
+        <Link href="/dashboard" onClick={onClose} className="flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="Inteli Blockchain"
+            width={914}
+            height={1062}
+            priority
+            className="h-10 w-auto"
+          />
+          <h2 className="text-xl font-bold text-white leading-tight">
             Inteli<br />
             <span className="text-accent-blue">Blockchain</span>
           </h2>
-        </div>
+        </Link>
         {/* Close button — only visible on mobile */}
         <button
           onClick={onClose}

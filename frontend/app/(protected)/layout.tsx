@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Menu } from "lucide-react";
-import { ShieldCheck } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 export default function ProtectedLayout({
@@ -27,7 +27,14 @@ export default function ProtectedLayout({
             <Menu size={22} />
           </button>
           <div className="flex items-center gap-2">
-            <ShieldCheck size={22} className="text-accent-blue" />
+            <Image
+              src="/logo.png"
+              alt="Inteli Blockchain"
+              width={914}
+              height={1062}
+              priority
+              className="h-7 w-auto"
+            />
             <span className="font-bold text-white text-sm">Inteli Blockchain</span>
           </div>
         </header>

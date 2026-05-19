@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { LogIn } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
@@ -27,6 +28,14 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="card w-full max-w-md text-center flex flex-col items-center gap-6 p-8"
       >
+        <Image
+          src="/logo_texto.png"
+          alt="Inteli Blockchain"
+          width={4015}
+          height={3006}
+          priority
+          className="h-20 w-auto"
+        />
         <h1 className="text-3xl text-white font-bold">Bem-vindo(a)</h1>
         <p className="text-[var(--color-text-main)] opacity-80 mb-4">
           Para acessar a plataforma, faça login com sua conta institucional <strong>@sou.inteli.edu.br</strong>.
